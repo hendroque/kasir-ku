@@ -1,0 +1,278 @@
+import { ref, computed } from 'vue';
+
+// Set default locale to Indonesian
+export const locale = ref('id');
+
+const messages = {
+  en: {
+    // Navigation
+    nav_pos: 'Point of Sale',
+    nav_products: 'Products',
+    nav_categories: 'Categories',
+    nav_reports: 'Reports',
+    nav_history: 'History',
+    nav_settings: 'Settings',
+    
+    // POS View
+    search_products: 'Search products...',
+    all_categories: 'All Categories',
+    current_order: 'Current Order',
+    clear_cart: 'Clear Cart',
+    cart_empty: 'Cart is empty',
+    subtotal: 'Subtotal',
+    tax: 'Tax',
+    total: 'Total',
+    payment_method: 'Payment Method',
+    cash: 'Cash',
+    card: 'Card',
+    qris: 'QRIS',
+    confirm_checkout: 'Confirm Checkout',
+    checkout_success: 'Checkout Successful!',
+    invoice: 'Invoice',
+    amount_paid: 'Amount Paid',
+    new_order: 'New Order',
+
+    // Product Master View
+    manage_inventory: 'Manage your inventory',
+    add_product: '+ Add Product',
+    image: 'Image',
+    sku: 'SKU',
+    product_name: 'Product Name',
+    cost_price: 'Cost Price',
+    price: 'Selling Price',
+    stock: 'Stock',
+    actions: 'Actions',
+    edit: 'Edit',
+    delete: 'Delete',
+    no_products: 'No products found.',
+    show: 'Show',
+    entries: 'entries',
+    showing: 'Showing',
+    to: 'to',
+    of: 'of',
+    prev: 'Prev',
+    next: 'Next',
+    add_photo: 'Add Photo',
+    auto_resized: 'Auto-resized to 480x480',
+    category: 'Category',
+    cancel: 'Cancel',
+    save_product: 'Save Product',
+    new_product_title: 'New Product',
+    edit_product_title: 'Edit Product',
+    
+    // Category View
+    manage_categories: 'Manage your categories',
+    add_category: '+ Add Category',
+    category_name: 'Category Name',
+    status: 'Status',
+    active: 'Active',
+    save_category: 'Save Category',
+    new_category_title: 'New Category',
+    edit_category_title: 'Edit Category',
+
+    // Reports View
+    daily_dashboard: 'Daily Dashboard',
+    dashboard_desc: 'Overview of your sales performance today',
+    total_revenue: 'Total Revenue',
+    total_cogs: 'Total COGS (HPP)',
+    gross_profit: 'Gross Profit',
+    items_sold: 'Items Sold Today',
+    sales_breakdown: 'Today\'s Sales Breakdown',
+    qty_sold: 'Qty Sold',
+    avg_cogs: 'Avg COGS',
+    no_sales: 'No sales recorded today.',
+    tab_daily: 'Daily Sales',
+    tab_stock: 'Stock Report',
+    tab_trends: 'Sales Trends',
+    stock_value: 'Total Stock Value',
+    low_stock: 'Low Stock Items',
+    product: 'Product',
+    value: 'Asset Value',
+    revenue_vs_cogs: 'Revenue vs COGS (Last 7 Days)',
+    revenue: 'Revenue',
+    cogs: 'COGS',
+
+    // History View
+    transaction_history: 'Transaction History',
+    history_desc: 'View past orders and receipts',
+    invoice_number: 'Invoice Number',
+    date: 'Date',
+    view_details: 'View Details',
+    no_history: 'No transactions found.',
+    order_details: 'Order Details',
+    close: 'Close',
+    print_receipt: 'Print Receipt',
+    price_each: 'each',
+    
+    // Settings & Export
+    store_profile: 'Store Profile',
+    store_desc: 'Configure your business details and tax rate',
+    store_name: 'Store Name',
+    store_address: 'Store Address',
+    store_phone: 'Phone Number',
+    tax_rate: 'Tax Rate (%)',
+    save_settings: 'Save Settings',
+    settings_saved: 'Settings saved successfully!',
+    export_excel: 'Export Excel',
+    export_pdf: 'Export PDF',
+    
+    // Scanner, Ledger, Void
+    scan_barcode: 'Scan Barcode',
+    cancel_scan: 'Cancel Scan',
+    void_order: 'Void Order',
+    confirm_void: 'Are you sure you want to void this order? Stock will be refunded.',
+    order_voided: 'Order voided.',
+    restock: 'Restock (+)',
+    qty_to_add: 'Quantity to Add',
+    tab_ledger: 'Stock Card',
+    type: 'Type',
+    reference: 'Reference',
+    date_time: 'Date & Time',
+    in: 'IN',
+    out: 'OUT',
+    cancelled: 'Cancelled'
+  },
+  id: {
+    // Navigation
+    nav_pos: 'Kasir',
+    nav_products: 'Produk',
+    nav_categories: 'Kategori',
+    nav_reports: 'Laporan',
+    nav_history: 'Riwayat',
+    nav_settings: 'Pengaturan',
+    
+    // POS View
+    search_products: 'Cari produk...',
+    all_categories: 'Semua Kategori',
+    current_order: 'Pesanan Saat Ini',
+    clear_cart: 'Kosongkan',
+    cart_empty: 'Keranjang kosong',
+    subtotal: 'Subtotal',
+    tax: 'Pajak',
+    total: 'Total',
+    payment_method: 'Metode Pembayaran',
+    cash: 'Tunai',
+    card: 'Kartu',
+    qris: 'QRIS',
+    confirm_checkout: 'Konfirmasi Bayar',
+    checkout_success: 'Pembayaran Berhasil!',
+    invoice: 'Faktur',
+    amount_paid: 'Total Dibayar',
+    new_order: 'Pesanan Baru',
+
+    // Product Master View
+    manage_inventory: 'Kelola inventaris Anda',
+    add_product: '+ Tambah Produk',
+    image: 'Gambar',
+    sku: 'SKU',
+    product_name: 'Nama Produk',
+    cost_price: 'Harga Modal (HPP)',
+    price: 'Harga Jual',
+    stock: 'Stok',
+    actions: 'Aksi',
+    edit: 'Ubah',
+    delete: 'Hapus',
+    no_products: 'Tidak ada produk.',
+    show: 'Tampilkan',
+    entries: 'data',
+    showing: 'Menampilkan',
+    to: 'sampai',
+    of: 'dari',
+    prev: 'Seb',
+    next: 'Lanjut',
+    add_photo: 'Tambah Foto',
+    auto_resized: 'Otomatis diubah ke 480x480',
+    category: 'Kategori',
+    cancel: 'Batal',
+    save_product: 'Simpan Produk',
+    new_product_title: 'Produk Baru',
+    edit_product_title: 'Ubah Produk',
+    
+    // Category View
+    manage_categories: 'Kelola kategori produk',
+    add_category: '+ Tambah Kategori',
+    category_name: 'Nama Kategori',
+    status: 'Status',
+    active: 'Aktif',
+    save_category: 'Simpan Kategori',
+    new_category_title: 'Kategori Baru',
+    edit_category_title: 'Ubah Kategori',
+
+    // Reports View
+    daily_dashboard: 'Ringkasan Harian',
+    dashboard_desc: 'Ringkasan performa penjualan hari ini',
+    total_revenue: 'Total Pendapatan',
+    total_cogs: 'Total HPP (Modal)',
+    gross_profit: 'Laba Kotor',
+    items_sold: 'Produk Terjual',
+    sales_breakdown: 'Rincian Penjualan Hari Ini',
+    qty_sold: 'Qty Laku',
+    avg_cogs: 'Rata-Rata HPP',
+    no_sales: 'Belum ada penjualan hari ini.',
+    tab_daily: 'Penjualan Harian',
+    tab_stock: 'Laporan Stok',
+    tab_trends: 'Tren Penjualan',
+    stock_value: 'Total Nilai Stok',
+    low_stock: 'Stok Menipis',
+    product: 'Produk',
+    value: 'Nilai Aset',
+    revenue_vs_cogs: 'Omzet vs Modal (7 Hari Terakhir)',
+    revenue: 'Pendapatan',
+    cogs: 'Modal (HPP)',
+
+    // History View
+    transaction_history: 'Riwayat Transaksi',
+    history_desc: 'Lihat riwayat pesanan dan struk',
+    invoice_number: 'Nomor Faktur',
+    date: 'Tanggal',
+    view_details: 'Lihat Detail',
+    no_history: 'Tidak ada transaksi.',
+    order_details: 'Detail Pesanan',
+    close: 'Tutup',
+    print_receipt: 'Cetak Struk',
+    price_each: 'per item',
+    
+    // Settings & Export
+    store_profile: 'Profil Toko',
+    store_desc: 'Atur detail bisnis dan persentase pajak Anda',
+    store_name: 'Nama Toko',
+    store_address: 'Alamat Toko',
+    store_phone: 'Nomor Telepon',
+    tax_rate: 'PPN / Pajak (%)',
+    save_settings: 'Simpan Pengaturan',
+    settings_saved: 'Pengaturan berhasil disimpan!',
+    export_excel: 'Unduh Excel',
+    export_pdf: 'Unduh PDF',
+
+    // Scanner, Ledger, Void
+    scan_barcode: 'Scan Barcode',
+    cancel_scan: 'Tutup Kamera',
+    void_order: 'Batalkan Pesanan',
+    confirm_void: 'Yakin ingin membatalkan pesanan ini? Stok barang akan dikembalikan otomatis.',
+    order_voided: 'Pesanan Dibatalkan.',
+    restock: 'Tambah Stok (+)',
+    qty_to_add: 'Jumlah Ditambah',
+    tab_ledger: 'Kartu Stok',
+    type: 'Tipe',
+    reference: 'Keterangan / Referensi',
+    date_time: 'Waktu',
+    in: 'MASUK',
+    out: 'KELUAR',
+    cancelled: 'Dibatalkan'
+  }
+};
+
+// Translate function (reactive based on locale)
+export const t = (key) => {
+  return messages[locale.value]?.[key] || key;
+};
+
+// Currency formatter locked strictly to IDR format
+export const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount);
+};

@@ -3,9 +3,11 @@ import { ref, computed } from 'vue';
 
 export const useCartStore = defineStore('cart', () => {
   const items = ref([]);
+  const taxRate = ref(0);
 
   const subtotal = computed(() => items.value.reduce((total, item) => total + (item.price * item.quantity), 0));
-  const grandTotal = computed(() => subtotal.value);
+  const taxAmount = computed(() => (subtotal.value * taxRate.value) / 100);
+  const grandTotal = computed(() => subtotal.value + taxAmount.value);
 
   function addToCart(product) {
     const existing = items.value.find(i => i.id === product.id);
@@ -31,5 +33,9 @@ export const useCartStore = defineStore('cart', () => {
     items.value = [];
   }
 
-  return { items, subtotal, grandTotal, addToCart, removeFromCart, updateQuantity, clearCart };
+  function setTaxRate(rate) {
+    taxRate.value = rate;
+  }
+
+  return { items, taxRate, subtotal, taxAmount, grandTotal, addToCart, removeFromCart, updateQuantity, clearCart, setTaxRate };
 });
