@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { CapacitorSQLite, SQLiteConnection } from '@capacitor-community/sqlite';
 
-const isWeb = Capacitor.getPlatform() === 'web';
+export const isWeb = Capacitor.getPlatform() === 'web';
 const sqlite = new SQLiteConnection(CapacitorSQLite);
 let db;
 
@@ -13,6 +13,10 @@ let mockProducts = [
   { id: 4, category_id: 2, name: 'Blueberry Muffin', sku: 'SKU004', price: 30000, cost_price: 12000, stock: 25, image: null }
 ];
 
+let mockCategories = [
+  { id: 1, name: 'Coffee', is_active: 1 },
+  { id: 2, name: 'Pastry', is_active: 1 }
+];
 let mockOrders = [];
 let mockOrderItems = [];
 let mockSettings = {
@@ -22,6 +26,10 @@ let mockSettings = {
   tax_rate: '11'
 };
 let mockStockLedger = [];
+let mockPurchases = [];
+let mockPurchaseItems = [];
+let mockHppHistory = [];
+let mockStockAdjustments = [];
 
 export const dbService = {
   async initDb() {
@@ -42,6 +50,10 @@ export const dbService = {
         CREATE TABLE IF NOT EXISTS order_items (id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER, product_id INTEGER, quantity INTEGER NOT NULL, price REAL NOT NULL, cost_price REAL DEFAULT 0, subtotal REAL NOT NULL, FOREIGN KEY (order_id) REFERENCES orders (id), FOREIGN KEY (product_id) REFERENCES products (id));
         CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
         CREATE TABLE IF NOT EXISTS stock_ledger (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER, type TEXT, quantity INTEGER, reference TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (product_id) REFERENCES products (id));
+        CREATE TABLE IF NOT EXISTS purchases (id INTEGER PRIMARY KEY AUTOINCREMENT, invoice_number TEXT UNIQUE NOT NULL, total_amount REAL NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+        CREATE TABLE IF NOT EXISTS purchase_items (id INTEGER PRIMARY KEY AUTOINCREMENT, purchase_id INTEGER, product_id INTEGER, quantity INTEGER NOT NULL, buy_price REAL NOT NULL, subtotal REAL NOT NULL, FOREIGN KEY (purchase_id) REFERENCES purchases (id), FOREIGN KEY (product_id) REFERENCES products (id));
+        CREATE TABLE IF NOT EXISTS hpp_history (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER, old_hpp REAL, new_hpp REAL, reason TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (product_id) REFERENCES products (id));
+        CREATE TABLE IF NOT EXISTS stock_adjustments (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER, old_stock INTEGER, new_stock INTEGER, difference INTEGER, reason TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (product_id) REFERENCES products (id));
       `;
       await db.execute(query);
       
@@ -147,11 +159,11 @@ export const dbService = {
     try {
       await db.beginTransaction();
       const orderRes = await db.run('INSERT INTO orders (invoice_number, total_amount, payment_method) VALUES (?, ?, ?)', [invoiceNumber, total, paymentMethod]);
-      const orderId = orderRes.changes.lastId;
+      const orderId = (orderRes.changes && orderRes.changes.lastId !== undefined) ? orderRes.changes.lastId : (orderRes.lastId || Date.now());
 
       for (const item of cartItems) {
         const subtotal = item.price * item.quantity;
-        await db.run('INSERT INTO order_items (order_id, product_id, quantity, price, cost_price, subtotal) VALUES (?, ?, ?, ?, ?, ?)', [orderId, item.id, item.quantity, item.price, item.cost_price, subtotal]);
+        await db.run('INSERT INTO order_items (order_id, product_id, quantity, price, cost_price, subtotal) VALUES (?, ?, ?, ?, ?, ?)', [orderId, item.id, item.quantity, item.price, item.cost_price || 0, subtotal]);
         await db.run('UPDATE products SET stock = stock - ? WHERE id = ?', [item.quantity, item.id]);
         await db.run('INSERT INTO stock_ledger (product_id, type, quantity, reference) VALUES (?, ?, ?, ?)', [item.id, 'OUT', item.quantity, `Sales ${invoiceNumber}`]);
       }
@@ -160,7 +172,7 @@ export const dbService = {
     } catch (err) {
       await db.rollbackTransaction();
       console.error('Checkout error:', err);
-      return { success: false, error: err };
+      return { success: false, error: err.message || JSON.stringify(err) };
     }
   },
 
@@ -489,5 +501,277 @@ export const dbService = {
       const res = await db.query(query);
       return res.values || [];
     } catch (err) { console.error(err); return []; }
+  },
+
+  async getPurchases() {
+    if (isWeb) return mockPurchases;
+    try {
+      const res = await db.query("SELECT * FROM purchases ORDER BY created_at DESC");
+      return res.values || [];
+    } catch (err) { console.error(err); return []; }
+  },
+
+  async submitPurchase(items, totalAmount) {
+    const invoiceNumber = 'PURC-' + Date.now();
+    if (isWeb) {
+      const purchaseId = mockPurchases.length + 1;
+      mockPurchases.unshift({ id: purchaseId, invoice_number: invoiceNumber, total_amount: totalAmount, created_at: new Date().toISOString() });
+      
+      items.forEach(item => {
+        const prodIdx = mockProducts.findIndex(p => p.id === item.product_id);
+        if (prodIdx !== -1) {
+          const oldStock = mockProducts[prodIdx].stock;
+          const oldHpp = mockProducts[prodIdx].cost_price || 0;
+          
+          const totalOldValue = oldStock * oldHpp;
+          const totalNewValue = item.quantity * item.buy_price;
+          const totalQty = oldStock + item.quantity;
+          
+          const newHpp = totalQty > 0 ? (totalOldValue + totalNewValue) / totalQty : 0;
+          
+          mockProducts[prodIdx].stock = totalQty;
+          mockProducts[prodIdx].cost_price = newHpp;
+          
+          mockHppHistory.unshift({
+            id: mockHppHistory.length + 1,
+            product_id: item.product_id,
+            old_hpp: oldHpp,
+            new_hpp: newHpp,
+            reason: `Purchase ${invoiceNumber}`,
+            created_at: new Date().toISOString()
+          });
+
+          mockStockLedger.unshift({
+            id: mockStockLedger.length + 1,
+            product_id: item.product_id,
+            product_name: mockProducts[prodIdx].name,
+            type: 'IN',
+            quantity: item.quantity,
+            reference: `Purchase ${invoiceNumber}`,
+            created_at: new Date().toISOString()
+          });
+
+          mockPurchaseItems.push({
+            id: mockPurchaseItems.length + 1,
+            purchase_id: purchaseId,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            buy_price: item.buy_price,
+            subtotal: item.quantity * item.buy_price
+          });
+        }
+      });
+      return { success: true, invoiceNumber };
+    }
+
+    try {
+      await db.beginTransaction();
+      const purcRes = await db.run('INSERT INTO purchases (invoice_number, total_amount) VALUES (?, ?)', [invoiceNumber, totalAmount]);
+      const purchaseId = (purcRes.changes && purcRes.changes.lastId !== undefined) ? purcRes.changes.lastId : (purcRes.lastId || Date.now());
+
+      for (const item of items) {
+        const subtotal = item.buy_price * item.quantity;
+        await db.run('INSERT INTO purchase_items (purchase_id, product_id, quantity, buy_price, subtotal) VALUES (?, ?, ?, ?, ?)', [purchaseId, item.product_id, item.quantity, item.buy_price, subtotal]);
+        
+        // Moving Average HPP Calculation
+        const prodRes = await db.query('SELECT stock, cost_price FROM products WHERE id = ?', [item.product_id]);
+        if (prodRes.values && prodRes.values.length > 0) {
+          const oldStock = prodRes.values[0].stock;
+          const oldHpp = prodRes.values[0].cost_price || 0;
+          
+          const totalOldValue = oldStock * oldHpp;
+          const totalNewValue = item.quantity * item.buy_price;
+          const totalQty = oldStock + item.quantity;
+          
+          const newHpp = totalQty > 0 ? (totalOldValue + totalNewValue) / totalQty : 0;
+          
+          // Update Product
+          await db.run('UPDATE products SET stock = ?, cost_price = ? WHERE id = ?', [totalQty, newHpp, item.product_id]);
+          
+          // Log HPP History
+          await db.run('INSERT INTO hpp_history (product_id, old_hpp, new_hpp, reason) VALUES (?, ?, ?, ?)', [item.product_id, oldHpp, newHpp, `Purchase ${invoiceNumber}`]);
+          
+          // Log Stock Ledger
+          await db.run('INSERT INTO stock_ledger (product_id, type, quantity, reference) VALUES (?, ?, ?, ?)', [item.product_id, 'IN', item.quantity, `Purchase ${invoiceNumber}`]);
+        }
+      }
+      
+      await db.commitTransaction();
+      return { success: true, invoiceNumber };
+    } catch (err) {
+      await db.rollbackTransaction();
+      console.error(err);
+      return { success: false, error: err.message || JSON.stringify(err) };
+    }
+  },
+
+  async getPurchaseDetails(purchaseId) {
+    if (isWeb) {
+      const items = mockPurchaseItems.filter(i => i.purchase_id === purchaseId);
+      return items.map(i => {
+        const product = mockProducts.find(p => p.id === i.product_id);
+        return { ...i, product_name: product ? product.name : 'Unknown' };
+      });
+    }
+    try {
+      const query = `
+        SELECT pi.*, p.name as product_name
+        FROM purchase_items pi
+        JOIN products p ON pi.product_id = p.id
+        WHERE pi.purchase_id = ?
+      `;
+      const res = await db.query(query, [purchaseId]);
+      return res.values || [];
+    } catch (err) {
+      console.error(err);
+      return [];
+    }
+  },
+
+  async getHppHistory(productId) {
+    if (isWeb) {
+      return mockHppHistory.filter(h => h.product_id === productId);
+    }
+    try {
+      const query = `SELECT * FROM hpp_history WHERE product_id = ? ORDER BY created_at DESC`;
+      const res = await db.query(query, [productId]);
+      return res.values || [];
+    } catch (err) {
+      console.error(err);
+      return [];
+    }
+  },
+
+  async submitOpname(productId, oldStock, newStock, reason) {
+    const difference = newStock - oldStock;
+    if (difference === 0) return { success: true };
+
+    if (isWeb) {
+      const prodIdx = mockProducts.findIndex(p => p.id === productId);
+      if (prodIdx !== -1) {
+        mockProducts[prodIdx].stock = newStock;
+        mockStockAdjustments.unshift({
+          id: mockStockAdjustments.length + 1,
+          product_id: productId,
+          old_stock: oldStock,
+          new_stock: newStock,
+          difference,
+          reason,
+          created_at: new Date().toISOString()
+        });
+        mockStockLedger.unshift({
+          id: mockStockLedger.length + 1,
+          product_id: productId,
+          product_name: mockProducts[prodIdx].name,
+          type: difference > 0 ? 'IN' : 'OUT',
+          quantity: Math.abs(difference),
+          reference: `Opname: ${reason}`,
+          created_at: new Date().toISOString()
+        });
+      }
+      return { success: true };
+    }
+
+    try {
+      await db.beginTransaction();
+      
+      // Update Stock
+      await db.run('UPDATE products SET stock = ? WHERE id = ?', [newStock, productId]);
+      
+      // Log Adjustment
+      await db.run('INSERT INTO stock_adjustments (product_id, old_stock, new_stock, difference, reason) VALUES (?, ?, ?, ?, ?)', [productId, oldStock, newStock, difference, reason]);
+      
+      // Log Ledger
+      const type = difference > 0 ? 'IN' : 'OUT';
+      await db.run('INSERT INTO stock_ledger (product_id, type, quantity, reference) VALUES (?, ?, ?, ?)', [productId, type, Math.abs(difference), `Opname: ${reason}`]);
+      
+      await db.commitTransaction();
+      return { success: true };
+    } catch (err) {
+      await db.rollbackTransaction();
+      console.error(err);
+      return { success: false, error: err.message || JSON.stringify(err) };
+    }
+  },
+
+  async exportDatabase() {
+    try {
+      let data = {};
+      if (isWeb) {
+        data = {
+          categories: mockCategories,
+          products: mockProducts,
+          transactions: mockOrders,
+          transaction_items: mockOrderItems,
+          settings: mockSettings,
+          stock_ledger: mockStockLedger,
+          purchases: mockPurchases,
+          purchase_items: mockPurchaseItems,
+          hpp_history: mockHppHistory,
+          stock_adjustments: mockStockAdjustments
+        };
+      } else {
+        const tables = ['categories', 'products', 'transactions', 'transaction_items', 'settings', 'stock_ledger', 'purchases', 'purchase_items', 'hpp_history', 'stock_adjustments'];
+        for (const table of tables) {
+          const res = await db.query(`SELECT * FROM ${table}`);
+          data[table] = res.values || [];
+        }
+      }
+      return { success: true, data: JSON.stringify(data) };
+    } catch (err) {
+      console.error(err);
+      return { success: false, error: err.message };
+    }
+  },
+
+  async importDatabase(jsonString) {
+    try {
+      const data = JSON.parse(jsonString);
+      
+      if (isWeb) {
+        if (data.categories) mockCategories.splice(0, mockCategories.length, ...data.categories);
+        if (data.products) mockProducts.splice(0, mockProducts.length, ...data.products);
+        if (data.transactions) mockOrders.splice(0, mockOrders.length, ...data.transactions);
+        if (data.transaction_items) mockOrderItems.splice(0, mockOrderItems.length, ...data.transaction_items);
+        if (data.settings) mockSettings = data.settings;
+        if (data.stock_ledger) mockStockLedger.splice(0, mockStockLedger.length, ...data.stock_ledger);
+        if (data.purchases) mockPurchases.splice(0, mockPurchases.length, ...data.purchases);
+        if (data.purchase_items) mockPurchaseItems.splice(0, mockPurchaseItems.length, ...data.purchase_items);
+        if (data.hpp_history) mockHppHistory.splice(0, mockHppHistory.length, ...data.hpp_history);
+        if (data.stock_adjustments) mockStockAdjustments.splice(0, mockStockAdjustments.length, ...data.stock_adjustments);
+        return { success: true };
+      }
+
+      await db.beginTransaction();
+      const tables = ['categories', 'products', 'transactions', 'transaction_items', 'settings', 'stock_ledger', 'purchases', 'purchase_items', 'hpp_history', 'stock_adjustments'];
+      
+      // Clear existing tables
+      for (const table of tables) {
+        await db.run(`DELETE FROM ${table}`);
+        // Optional: Reset auto-increment
+        try {
+          await db.run(`DELETE FROM sqlite_sequence WHERE name='${table}'`);
+        } catch (e) { /* ignore sequence errors if table has no autoincrement */ }
+      }
+
+      // Insert new data
+      for (const table of tables) {
+        if (data[table] && data[table].length > 0) {
+          const columns = Object.keys(data[table][0]);
+          const placeholders = columns.map(() => '?').join(',');
+          for (const row of data[table]) {
+            const values = columns.map(col => row[col]);
+            await db.run(`INSERT INTO ${table} (${columns.join(',')}) VALUES (${placeholders})`, values);
+          }
+        }
+      }
+
+      await db.commitTransaction();
+      return { success: true };
+    } catch (err) {
+      if (!isWeb) await db.rollbackTransaction().catch(() => {});
+      console.error(err);
+      return { success: false, error: err.message };
+    }
   }
 };

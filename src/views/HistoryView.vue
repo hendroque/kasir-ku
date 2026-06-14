@@ -88,6 +88,7 @@
 import { ref, onMounted } from 'vue';
 import { dbService } from '../services/dbService';
 import { t, formatCurrency } from '../utils/i18n';
+import Swal from 'sweetalert2';
 
 const orders = ref([]);
 const orderItems = ref([]);
@@ -107,14 +108,30 @@ const viewDetails = async (order) => {
 };
 
 const voidOrder = async (orderId) => {
-  if (confirm(t('confirm_void'))) {
+  const result = await Swal.fire({
+    title: t('warning'),
+    text: t('confirm_void'),
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#94a3b8',
+    confirmButtonText: t('yes_void'),
+    cancelButtonText: t('cancel')
+  });
+
+  if (result.isConfirmed) {
     const res = await dbService.cancelOrder(orderId);
     if (res.success) {
-      alert(t('order_voided'));
+      Swal.fire({
+        title: t('success'),
+        text: t('order_voided'),
+        icon: 'success',
+        confirmButtonColor: '#3085d6'
+      });
       showModal.value = false;
       await loadData();
     } else {
-      alert('Failed to void order: ' + res.error);
+      Swal.fire(t('error'), 'Failed to void order: ' + res.error, 'error');
     }
   }
 };

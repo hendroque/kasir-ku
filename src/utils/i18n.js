@@ -130,7 +130,38 @@ const messages = {
     date_time: 'Date & Time',
     in: 'IN',
     out: 'OUT',
-    cancelled: 'Cancelled'
+    cancelled: 'Cancelled',
+    
+    // Purchases & HPP
+    nav_purchases: 'Purchases',
+    purchasing_module: 'Purchasing Module',
+    purchasing_desc: 'Stock up inventory and auto-calculate Moving Average Cost',
+    select_product: 'Select Product',
+    buy_price: 'Buy Price',
+    qty: 'Quantity',
+    add_item: 'Add Item',
+    confirm_purchase: 'Confirm Purchase',
+    purchase_success: 'Purchase Successful!',
+    tab_purchases: 'Purchases',
+    
+    // Stock Opname
+    nav_opname: 'Stock Opname',
+    opname_module: 'Stock Opname Module',
+    opname_desc: 'Adjust physical inventory against system records',
+    system_stock: 'System Stock',
+    actual_stock: 'Actual Physical Stock',
+    difference: 'Difference',
+    reason: 'Reason / Note',
+    submit_opname: 'Submit Adjustment',
+    opname_success: 'Stock successfully adjusted!',
+    
+    // Swal
+    yes_delete: 'Yes, delete it!',
+    yes_void: 'Yes, void order!',
+    cancel: 'Cancel',
+    success: 'Success',
+    error: 'Error',
+    warning: 'Warning'
   },
   id: {
     // Navigation
@@ -258,7 +289,38 @@ const messages = {
     date_time: 'Waktu',
     in: 'MASUK',
     out: 'KELUAR',
-    cancelled: 'Dibatalkan'
+    cancelled: 'Dibatalkan',
+
+    // Purchases & HPP
+    nav_purchases: 'Pembelian',
+    purchasing_module: 'Modul Pembelian',
+    purchasing_desc: 'Kulakan barang dan hitung HPP (Moving Average) otomatis',
+    select_product: 'Pilih Produk',
+    buy_price: 'Harga Beli (Satuan)',
+    qty: 'Kuantitas',
+    add_item: 'Tambah Item',
+    confirm_purchase: 'Konfirmasi Pembelian',
+    purchase_success: 'Pembelian Berhasil!',
+    tab_purchases: 'Laporan Pembelian',
+
+    // Stock Opname
+    nav_opname: 'Stock Opname',
+    opname_module: 'Modul Stock Opname',
+    opname_desc: 'Sesuaikan stok fisik toko dengan catatan sistem',
+    system_stock: 'Stok Sistem',
+    actual_stock: 'Stok Fisik Aktual',
+    difference: 'Selisih',
+    reason: 'Alasan / Keterangan',
+    submit_opname: 'Simpan Penyesuaian',
+    opname_success: 'Stok berhasil disesuaikan!',
+
+    // Swal
+    yes_delete: 'Ya, hapus!',
+    yes_void: 'Ya, batalkan!',
+    cancel: 'Batal',
+    success: 'Berhasil',
+    error: 'Gagal',
+    warning: 'Peringatan'
   }
 };
 

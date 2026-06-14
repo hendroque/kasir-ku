@@ -43,7 +43,7 @@
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl p-6 md:p-8 border border-slate-100 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div class="bg-white rounded-2xl p-6 md:p-8 border border-slate-100 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
         <div class="flex items-center space-x-4">
           <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex shrink-0 items-center justify-center text-3xl">🖨️</div>
           <div>
@@ -60,15 +60,43 @@
         </button>
       </div>
 
+      <div class="bg-white rounded-2xl p-6 md:p-8 border border-slate-100 shadow-sm flex flex-col items-start gap-6">
+        <div class="flex items-center space-x-4 w-full">
+          <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex shrink-0 items-center justify-center text-3xl">💾</div>
+          <div class="flex-1">
+            <h3 class="font-bold text-slate-800 text-lg">Manajemen Database</h3>
+            <p class="text-sm text-slate-500 mt-1">
+              Backup seluruh data toko Anda agar aman, atau Restore dari file backup sebelumnya.
+            </p>
+          </div>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row gap-4 w-full pt-4 border-t border-slate-100">
+          <button @click="exportData" :disabled="isExporting" class="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-emerald-200 transition-all active:scale-95 touch-manipulation flex items-center justify-center gap-2">
+            <span v-if="isExporting" class="animate-spin">⏳</span>
+            <span v-else>📤</span> Export (Backup)
+          </button>
+          
+          <input type="file" ref="fileInput" accept=".json" class="hidden" @change="importData" />
+          <button @click="$refs.fileInput.click()" :disabled="isImporting" class="flex-1 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-amber-200 transition-all active:scale-95 touch-manipulation flex items-center justify-center gap-2">
+            <span v-if="isImporting" class="animate-spin">⏳</span>
+            <span v-else>📥</span> Import (Restore)
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { dbService } from '../services/dbService';
+import { dbService, isWeb } from '../services/dbService';
 import { printerService } from '../services/printerService';
 import { t } from '../utils/i18n';
+import Swal from 'sweetalert2';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 
 const settings = ref({
   store_name: '',
@@ -101,7 +129,12 @@ const save = async () => {
   });
   
   if (result.success) {
-    alert(t('settings_saved'));
+    Swal.fire({
+      title: t('success'),
+      text: t('settings_saved'),
+      icon: 'success',
+      confirmButtonColor: '#3085d6'
+    });
   }
 };
 
@@ -109,7 +142,104 @@ const connectPrinter = async () => {
   const result = await printerService.scanAndConnect();
   if (result.success) {
     printerId.value = printerService.savedPrinterId;
-    alert(`Successfully paired!`);
+    Swal.fire({
+      title: t('success'),
+      text: 'Successfully paired!',
+      icon: 'success',
+      confirmButtonColor: '#3085d6'
+    });
+  } else {
+    Swal.fire(t('error'), 'Failed to connect to printer', 'error');
+  }
+};
+
+const isExporting = ref(false);
+const isImporting = ref(false);
+const fileInput = ref(null);
+
+const exportData = async () => {
+  isExporting.value = true;
+  try {
+    const res = await dbService.exportDatabase();
+    if (!res.success) throw new Error(res.error);
+
+    const fileName = `kasir_backup_${new Date().toISOString().split('T')[0]}.json`;
+
+    if (isWeb) {
+      const blob = new Blob([res.data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+      Swal.fire('Berhasil', 'Backup berhasil diunduh.', 'success');
+    } else {
+      const result = await Filesystem.writeFile({
+        path: fileName,
+        data: res.data,
+        directory: Directory.Cache,
+        encoding: Encoding.UTF8
+      });
+      
+      await Share.share({
+        title: 'KasirKu Backup',
+        text: 'Ini adalah file backup database toko Anda.',
+        url: result.uri,
+        dialogTitle: 'Simpan / Bagikan Backup'
+      });
+    }
+  } catch (e) {
+    console.error(e);
+    Swal.fire('Gagal', 'Terjadi kesalahan saat mengekspor data.', 'error');
+  } finally {
+    isExporting.value = false;
+  }
+};
+
+const importData = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const result = await Swal.fire({
+    title: 'Peringatan Berbahaya!',
+    text: 'Restore akan MENGHAPUS SEMUA data yang ada di aplikasi ini dan menggantinya dengan data dari file backup. Apakah Anda yakin?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Ya, Timpa Data!',
+    cancelButtonText: 'Batal'
+  });
+
+  if (!result.isConfirmed) {
+    fileInput.value.value = '';
+    return;
+  }
+
+  isImporting.value = true;
+  try {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const jsonString = e.target.result;
+      const res = await dbService.importDatabase(jsonString);
+      
+      if (res.success) {
+        Swal.fire('Berhasil!', 'Data toko berhasil dipulihkan. Halaman akan dimuat ulang.', 'success').then(() => {
+          window.location.reload();
+        });
+      } else {
+        Swal.fire('Gagal', 'Gagal memulihkan data: ' + res.error, 'error');
+      }
+      isImporting.value = false;
+      fileInput.value.value = '';
+    };
+    reader.readAsText(file);
+  } catch (err) {
+    console.error(err);
+    Swal.fire('Gagal', 'File backup rusak atau tidak valid.', 'error');
+    isImporting.value = false;
+    fileInput.value.value = '';
   }
 };
 </script>

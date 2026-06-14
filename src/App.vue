@@ -3,7 +3,7 @@
     <!-- Sidebar Navigation -->
     <nav class="w-64 bg-white border-r border-slate-200 flex-col hidden md:flex z-50 shadow-sm">
       <div class="p-6 border-b border-slate-100 flex items-center justify-between">
-        <h2 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">POS Pro</h2>
+        <h2 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">KasirKu Pro</h2>
         <button @click="toggleLanguage" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-lg transition-colors">
           {{ locale.toUpperCase() }}
         </button>
@@ -17,6 +17,12 @@
         </router-link>
         <router-link to="/products" class="block px-4 py-3 rounded-xl font-semibold transition-all duration-200" active-class="bg-blue-50 text-blue-700 shadow-sm" :class="$route.path === '/products' ? '' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'">
           📦 {{ t('nav_products') }}
+        </router-link>
+        <router-link to="/purchases" class="block px-4 py-3 rounded-xl font-semibold transition-all duration-200" active-class="bg-blue-50 text-blue-700 shadow-sm" :class="$route.path === '/purchases' ? '' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'">
+          🛒 {{ t('nav_purchases') }}
+        </router-link>
+        <router-link to="/opname" class="block px-4 py-3 rounded-xl font-semibold transition-all duration-200" active-class="bg-blue-50 text-blue-700 shadow-sm" :class="$route.path === '/opname' ? '' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'">
+          🔍 {{ t('nav_opname') }}
         </router-link>
         <router-link to="/history" class="block px-4 py-3 rounded-xl font-semibold transition-all duration-200" active-class="bg-blue-50 text-blue-700 shadow-sm" :class="$route.path === '/history' ? '' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'">
           📜 {{ t('nav_history') }}
@@ -36,31 +42,35 @@
     </main>
 
     <!-- Mobile Bottom Navigation -->
-    <nav class="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 flex md:hidden justify-around items-center z-50 h-16 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] safe-area-pb">
-      <router-link to="/" class="flex flex-col items-center justify-center w-full h-full text-[0.65rem] font-semibold transition-colors" active-class="text-blue-600" :class="$route.path === '/' ? '' : 'text-slate-500'">
+    <nav class="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 flex md:hidden overflow-x-auto overflow-y-hidden whitespace-nowrap z-50 h-16 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] safe-area-pb custom-scrollbar">
+      <router-link to="/" class="flex-shrink-0 min-w-[72px] flex flex-col items-center justify-center h-full text-[0.65rem] font-semibold transition-colors px-2" active-class="text-blue-600 bg-blue-50/50" :class="$route.path === '/' ? '' : 'text-slate-500'">
         <span class="text-xl mb-0.5">🛒</span>
         <span>{{ t('nav_pos') }}</span>
       </router-link>
-      <router-link to="/products" class="flex flex-col items-center justify-center w-full h-full text-[0.65rem] font-semibold transition-colors" active-class="text-blue-600" :class="$route.path === '/products' ? '' : 'text-slate-500'">
+      <router-link to="/products" class="flex-shrink-0 min-w-[72px] flex flex-col items-center justify-center h-full text-[0.65rem] font-semibold transition-colors px-2" active-class="text-blue-600 bg-blue-50/50" :class="$route.path === '/products' ? '' : 'text-slate-500'">
         <span class="text-xl mb-0.5">📦</span>
-        <span>{{ t('nav_products') }}</span>
+        <span>Produk</span>
       </router-link>
-      <router-link to="/history" class="flex flex-col items-center justify-center w-full h-full text-[0.65rem] font-semibold transition-colors" active-class="text-blue-600" :class="$route.path === '/history' ? '' : 'text-slate-500'">
+      <router-link to="/purchases" class="flex-shrink-0 min-w-[72px] flex flex-col items-center justify-center h-full text-[0.65rem] font-semibold transition-colors px-2" active-class="text-blue-600 bg-blue-50/50" :class="$route.path === '/purchases' ? '' : 'text-slate-500'">
+        <span class="text-xl mb-0.5">🚚</span>
+        <span>Kulakan</span>
+      </router-link>
+      <router-link to="/opname" class="flex-shrink-0 min-w-[72px] flex flex-col items-center justify-center h-full text-[0.65rem] font-semibold transition-colors px-2" active-class="text-blue-600 bg-blue-50/50" :class="$route.path === '/opname' ? '' : 'text-slate-500'">
+        <span class="text-xl mb-0.5">🔍</span>
+        <span>Opname</span>
+      </router-link>
+      <router-link to="/history" class="flex-shrink-0 min-w-[72px] flex flex-col items-center justify-center h-full text-[0.65rem] font-semibold transition-colors px-2" active-class="text-blue-600 bg-blue-50/50" :class="$route.path === '/history' ? '' : 'text-slate-500'">
         <span class="text-xl mb-0.5">📜</span>
-        <span>{{ t('nav_history') }}</span>
+        <span>Riwayat</span>
       </router-link>
-      <router-link to="/reports" class="flex flex-col items-center justify-center w-full h-full text-[0.65rem] font-semibold transition-colors" active-class="text-blue-600" :class="$route.path === '/reports' ? '' : 'text-slate-500'">
+      <router-link to="/reports" class="flex-shrink-0 min-w-[72px] flex flex-col items-center justify-center h-full text-[0.65rem] font-semibold transition-colors px-2" active-class="text-blue-600 bg-blue-50/50" :class="$route.path === '/reports' ? '' : 'text-slate-500'">
         <span class="text-xl mb-0.5">📈</span>
-        <span>{{ t('nav_reports') }}</span>
+        <span>Laporan</span>
       </router-link>
-      <router-link to="/settings" class="flex flex-col items-center justify-center w-full h-full text-[0.65rem] font-semibold transition-colors" active-class="text-blue-600" :class="$route.path === '/settings' ? '' : 'text-slate-500'">
+      <router-link to="/settings" class="flex-shrink-0 min-w-[72px] flex flex-col items-center justify-center h-full text-[0.65rem] font-semibold transition-colors px-2" active-class="text-blue-600 bg-blue-50/50" :class="$route.path === '/settings' ? '' : 'text-slate-500'">
         <span class="text-xl mb-0.5">⚙️</span>
-        <span>{{ t('nav_settings') }}</span>
+        <span>Setelan</span>
       </router-link>
-      <button @click="toggleLanguage" class="flex flex-col items-center justify-center w-full h-full text-[0.65rem] font-semibold text-slate-500 transition-colors">
-        <span class="text-xl mb-0.5">🌐</span>
-        <span>{{ locale.toUpperCase() }}</span>
-      </button>
     </nav>
   </div>
 </template>

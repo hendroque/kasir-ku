@@ -150,6 +150,7 @@ import { dbService } from '../services/dbService';
 import { printerService } from '../services/printerService';
 import { t, formatCurrency } from '../utils/i18n';
 import { Html5Qrcode } from 'html5-qrcode';
+import Swal from 'sweetalert2';
 
 const cartStore = useCartStore();
 const products = ref([]);
@@ -189,7 +190,7 @@ const checkout = async () => {
     products.value = await dbService.getProducts(); 
     isCartOpen.value = false;
   } else {
-    alert('Checkout failed. See console.');
+    Swal.fire(t('error'), 'Checkout failed: ' + (result.error || 'Unknown error'), 'error');
   }
   isProcessing.value = false;
 };
@@ -218,7 +219,7 @@ const startScanner = () => {
       }
     ).catch(err => {
       console.error(err);
-      alert('Camera access denied or error occurred');
+      Swal.fire(t('error'), 'Camera access denied or error occurred', 'error');
       showScanner.value = false;
     });
   }, 100);

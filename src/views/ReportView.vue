@@ -32,6 +32,12 @@
           :class="activeTab === 'ledger' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'">
           📓 {{ t('tab_ledger') }}
         </button>
+        <button 
+          @click="activeTab = 'purchases'" 
+          class="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm transition-all whitespace-nowrap"
+          :class="activeTab === 'purchases' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'">
+          🛒 {{ t('tab_purchases') }}
+        </button>
       </div>
 
       <!-- Tab 1: Daily Sales -->
@@ -143,8 +149,11 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
-                <tr v-for="prod in stockReportData.products" :key="prod.id" class="hover:bg-slate-50 transition-colors">
-                  <td class="p-4 text-sm text-slate-500">{{ prod.sku }}</td>
+                <tr v-for="prod in stockReportData.products" :key="prod.id" class="hover:bg-slate-50 transition-colors cursor-pointer" @click="$router.push('/hpp-history/' + prod.id)">
+                  <td class="p-4 text-sm text-slate-500 flex items-center gap-2">
+                    <span class="text-xs">▶</span>
+                    {{ prod.sku }}
+                  </td>
                   <td class="p-4 font-bold text-slate-800">
                     {{ prod.name }}
                     <span v-if="prod.stock < 10" class="ml-2 px-2 py-0.5 bg-red-100 text-red-700 text-[0.65rem] font-bold rounded-full uppercase">{{ t('low_stock') }}</span>
@@ -209,6 +218,72 @@
         </div>
       </div>
 
+      <!-- Tab 5: Purchases -->
+      <div v-if="activeTab === 'purchases'" class="flex-1 flex flex-col">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-8">
+          <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <h2 class="text-xl font-bold text-slate-800">{{ t('tab_purchases') }}</h2>
+          </div>
+          <div class="overflow-x-auto w-full">
+            <table class="w-full text-left whitespace-nowrap">
+              <thead class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold uppercase text-sm">
+                <tr>
+                  <th class="p-4">{{ t('invoice') }}</th>
+                  <th class="p-4">{{ t('date_time') }}</th>
+                  <th class="p-4 text-right">{{ t('total') }}</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <template v-for="purc in purchasesData" :key="purc.id">
+                  <tr class="hover:bg-slate-50 transition-colors cursor-pointer" @click="togglePurchaseDetail(purc.id)">
+                    <td class="p-4 font-bold text-slate-800 flex items-center gap-2">
+                      <span class="text-xs transition-transform" :class="expandedPurchases.includes(purc.id) ? 'rotate-90' : ''">▶</span>
+                      {{ purc.invoice_number }}
+                    </td>
+                    <td class="p-4 text-sm text-slate-500">{{ new Date(purc.created_at).toLocaleString() }}</td>
+                    <td class="p-4 text-right font-black text-indigo-600">{{ formatCurrency(purc.total_amount) }}</td>
+                  </tr>
+                  <!-- Detail Row -->
+                  <tr v-if="expandedPurchases.includes(purc.id)" class="bg-slate-50/50">
+                    <td colspan="3" class="p-0">
+                      <div class="px-8 py-4 border-l-4 border-indigo-500">
+                        <table class="w-full text-sm text-left">
+                          <thead class="text-slate-500 font-semibold uppercase text-[0.7rem]">
+                            <tr>
+                              <th class="py-2">Item</th>
+                              <th class="py-2 text-center">Qty</th>
+                              <th class="py-2 text-right">Price</th>
+                              <th class="py-2 text-right">Subtotal</th>
+                            </tr>
+                          </thead>
+                          <tbody class="divide-y divide-slate-100/50">
+                            <tr v-for="item in purc.items" :key="item.id">
+                              <td class="py-2 font-medium text-slate-700">{{ item.product_name }}</td>
+                              <td class="py-2 text-center text-slate-600">{{ item.quantity }}</td>
+                              <td class="py-2 text-right text-slate-600">{{ formatCurrency(item.buy_price) }}</td>
+                              <td class="py-2 text-right font-bold text-indigo-500">{{ formatCurrency(item.subtotal) }}</td>
+                            </tr>
+                          </tbody>
+                          <tfoot class="border-t-2 border-slate-200">
+                            <tr>
+                              <td colspan="3" class="py-2 text-right font-bold text-slate-600">Total Pembelian:</td>
+                              <td class="py-2 text-right font-black text-indigo-700">{{ formatCurrency(purc.total_amount) }}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+                <tr v-if="!purchasesData || purchasesData.length === 0">
+                  <td colspan="3" class="p-8 text-center text-slate-400">Belum ada transaksi pembelian.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
@@ -231,6 +306,8 @@ const report = ref({ revenue: 0, itemsSold: 0, cogs: 0, grossProfit: 0, itemBrea
 const stockReportData = ref({ totalValue: 0, products: [] });
 const trendsData = ref(null);
 const ledgerData = ref([]);
+const purchasesData = ref([]);
+const expandedPurchases = ref([]);
 
 const loadDaily = async () => {
   report.value = await dbService.getTodayReport();
@@ -248,11 +325,30 @@ const loadLedger = async () => {
   ledgerData.value = await dbService.getStockLedger();
 };
 
+const loadPurchases = async () => {
+  purchasesData.value = await dbService.getPurchases();
+};
+
+const togglePurchaseDetail = async (purchaseId) => {
+  const index = expandedPurchases.value.indexOf(purchaseId);
+  if (index > -1) {
+    expandedPurchases.value.splice(index, 1);
+  } else {
+    // Check if items are already loaded
+    const purc = purchasesData.value.find(p => p.id === purchaseId);
+    if (purc && !purc.items) {
+      purc.items = await dbService.getPurchaseDetails(purchaseId);
+    }
+    expandedPurchases.value.push(purchaseId);
+  }
+};
+
 onMounted(() => {
   loadDaily();
   loadStock();
   loadTrends();
   loadLedger();
+  loadPurchases();
 });
 
 // Export Functions

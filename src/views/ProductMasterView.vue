@@ -39,7 +39,6 @@
               <td class="p-4 text-indigo-600 font-bold">{{ formatCurrency(prod.price) }}</td>
               <td class="p-4 font-medium" :class="prod.stock < 10 ? 'text-red-500' : 'text-slate-600'">{{ prod.stock }}</td>
               <td class="p-4 text-right space-x-3">
-                <button @click="openRestockModal(prod)" class="text-emerald-500 hover:text-emerald-700 font-semibold">{{ t('restock') }}</button>
                 <button @click="openModal(prod)" class="text-blue-500 hover:text-blue-700 font-semibold">{{ t('edit') }}</button>
                 <button @click="deleteProduct(prod.id)" class="text-red-400 hover:text-red-600 font-semibold">{{ t('delete') }}</button>
               </td>
@@ -119,19 +118,9 @@
               <input v-model="formData.sku" type="text" class="w-full border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white" />
             </div>
             
-            <div>
-              <label class="block text-sm font-semibold text-slate-600 mb-1">{{ t('cost_price') }}</label>
-              <input v-model.number="formData.cost_price" type="number" class="w-full border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white" />
-            </div>
-            
-            <div>
+            <div class="sm:col-span-2">
               <label class="block text-sm font-semibold text-slate-600 mb-1">{{ t('price') }}</label>
               <input v-model.number="formData.price" type="number" class="w-full border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white" />
-            </div>
-            
-            <div class="sm:col-span-2">
-              <label class="block text-sm font-semibold text-slate-600 mb-1">{{ t('stock') }}</label>
-              <input v-model.number="formData.stock" type="number" class="w-full border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white" />
             </div>
           </div>
         </div>
@@ -142,29 +131,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Restock Modal -->
-    <div v-if="showRestockModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div class="absolute inset-0 bg-slate-800/40 backdrop-blur-sm" @click="showRestockModal = false"></div>
-      
-      <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl relative z-10 flex flex-col">
-        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
-          <h2 class="text-xl font-bold text-slate-800">{{ t('restock') }}</h2>
-          <button @click="showRestockModal = false" class="text-slate-400 hover:text-slate-600">✕</button>
-        </div>
-        
-        <div class="p-6">
-          <p class="text-slate-600 mb-4 font-semibold">{{ restockData.name }}</p>
-          <div class="mb-4">
-            <label class="block text-sm font-semibold text-slate-700 mb-2">{{ t('qty_to_add') }}</label>
-            <input v-model.number="restockData.qtyToAdd" type="number" min="1" class="w-full border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-          </div>
-          <button @click="submitRestock" :disabled="restockData.qtyToAdd <= 0" class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl shadow-lg transition-all active:scale-95">
-            {{ t('save') }}
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -172,14 +138,13 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { dbService } from '../services/dbService';
 import { t, formatCurrency } from '../utils/i18n';
+import Swal from 'sweetalert2';
 
 const products = ref([]);
 const categories = ref([]);
 const showModal = ref(false);
-const showRestockModal = ref(false);
 const isEditing = ref(false);
 const formData = ref({ id: null, category_id: null, name: '', sku: '', price: 0, cost_price: 0, stock: 0, image: null });
-const restockData = ref({ id: null, name: '', qtyToAdd: 0 });
 
 const loadData = async () => {
   products.value = await dbService.getProducts();
@@ -223,19 +188,6 @@ const openModal = (prod = null) => {
   showModal.value = true;
 };
 
-const openRestockModal = (prod) => {
-  restockData.value = { id: prod.id, name: prod.name, qtyToAdd: 1 };
-  showRestockModal.value = true;
-};
-
-const submitRestock = async () => {
-  if (restockData.value.qtyToAdd > 0) {
-    await dbService.addStock(restockData.value.id, restockData.value.qtyToAdd);
-    showRestockModal.value = false;
-    await loadData();
-  }
-};
-
 const handleImageUpload = (event) => {
   const file = event.target.files[0];
   if (!file) return;
@@ -267,7 +219,9 @@ const handleImageUpload = (event) => {
 };
 
 const saveProduct = async () => {
-  if (!formData.value.name || !formData.value.sku) return alert('Name and SKU are required');
+  if (!formData.value.name || !formData.value.sku) {
+    return Swal.fire(t('error'), 'Name and SKU are required', 'error');
+  }
   
   if (isEditing.value) {
     await dbService.updateProduct(formData.value.id, formData.value);
@@ -275,12 +229,39 @@ const saveProduct = async () => {
     await dbService.addProduct(formData.value);
   }
   showModal.value = false;
+  Swal.fire({
+    title: t('success'),
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 2000,
+    icon: 'success'
+  });
   await loadData();
 };
 
 const deleteProduct = async (id) => {
-  if (confirm('Delete this product?')) {
+  const result = await Swal.fire({
+    title: t('warning'),
+    text: "You won't be able to revert this!",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#94a3b8',
+    confirmButtonText: t('yes_delete'),
+    cancelButtonText: t('cancel')
+  });
+
+  if (result.isConfirmed) {
     await dbService.deleteProduct(id);
+    Swal.fire({
+      title: t('success'),
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2000,
+      icon: 'success'
+    });
     await loadData();
   }
 };

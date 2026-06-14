@@ -53,7 +53,7 @@ export const printerService = {
 
     let payload = [
       ...ESC_INIT,
-      ...ESC_ALIGN_CENTER, ...ESC_BOLD_ON, ...textToBytes("POS PRO STORE\n"), ...ESC_BOLD_OFF,
+      ...ESC_ALIGN_CENTER, ...ESC_BOLD_ON, ...textToBytes("KASIRKU PRO STORE\n"), ...ESC_BOLD_OFF,
       ...textToBytes("123 Main Street\n\n"),
       ...ESC_ALIGN_LEFT,
       ...textToBytes(`Inv  : ${orderData.invoiceNumber}\n`),
