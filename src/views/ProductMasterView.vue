@@ -115,7 +115,12 @@
             
             <div>
               <label class="block text-sm font-semibold text-slate-600 mb-1">{{ t('sku') }}</label>
-              <input v-model="formData.sku" type="text" class="w-full border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white" />
+              <div class="flex">
+                <input v-model="formData.sku" type="text" class="w-full border border-slate-200 rounded-l-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white" />
+                <button @click="startScanner" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 rounded-r-xl transition-colors flex items-center justify-center border border-indigo-600" title="Scan Barcode">
+                  📸
+                </button>
+              </div>
             </div>
             
             <div class="sm:col-span-2">
@@ -131,6 +136,22 @@
         </div>
       </div>
     </div>
+
+    <!-- Scanner Modal -->
+    <div v-show="showScanner" class="fixed inset-0 bg-slate-900/90 z-[110] flex flex-col items-center justify-center p-4 backdrop-blur-sm">
+      <div class="w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl relative">
+        <div class="p-6 text-center border-b border-slate-100">
+          <h2 class="text-2xl font-bold text-slate-800">{{ t('scan_barcode') }}</h2>
+          <p class="text-sm text-slate-500 mt-1">Point camera at the barcode</p>
+        </div>
+        <div id="reader" class="w-full h-[400px] bg-black"></div>
+        <div class="p-6">
+          <button @click="stopScanner" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-4 rounded-xl transition-all active:scale-95">
+            {{ t('cancel_scan') }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -138,13 +159,51 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { dbService } from '../services/dbService';
 import { t, formatCurrency } from '../utils/i18n';
+import { Html5Qrcode } from 'html5-qrcode';
 import Swal from 'sweetalert2';
 
 const products = ref([]);
 const categories = ref([]);
 const showModal = ref(false);
+const showScanner = ref(false);
+let html5QrCode = null;
 const isEditing = ref(false);
 const formData = ref({ id: null, category_id: null, name: '', sku: '', price: 0, cost_price: 0, stock: 0, image: null });
+
+const startScanner = async () => {
+  showScanner.value = true;
+  if (!html5QrCode) {
+    html5QrCode = new Html5Qrcode("reader");
+  }
+  try {
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      (decodedText) => {
+        formData.value.sku = decodedText;
+        stopScanner();
+      },
+      (errorMessage) => { }
+    );
+  } catch (err) {
+    console.error(err);
+    Swal.fire(t('error'), 'Camera access denied or error occurred', 'error');
+    stopScanner();
+  }
+};
+
+const stopScanner = () => {
+  if (html5QrCode && html5QrCode.isScanning) {
+    html5QrCode.stop().then(() => {
+      showScanner.value = false;
+    }).catch(err => {
+      console.error(err);
+      showScanner.value = false;
+    });
+  } else {
+    showScanner.value = false;
+  }
+};
 
 const loadData = async () => {
   products.value = await dbService.getProducts();
