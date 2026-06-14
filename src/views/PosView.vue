@@ -171,6 +171,7 @@ onMounted(async () => {
 });
 
 const checkout = async () => {
+  if (isProcessing.value) return;
   if (cartStore.items.length === 0) return;
   isProcessing.value = true;
   

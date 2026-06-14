@@ -157,6 +157,7 @@ export const dbService = {
     }
 
     try {
+      try { await db.rollbackTransaction(); } catch (e) {}
       await db.beginTransaction();
       const orderRes = await db.run('INSERT INTO orders (invoice_number, total_amount, payment_method) VALUES (?, ?, ?)', [invoiceNumber, total, paymentMethod]);
       const orderId = (orderRes.changes && orderRes.changes.lastId !== undefined) ? orderRes.changes.lastId : (orderRes.lastId || Date.now());
