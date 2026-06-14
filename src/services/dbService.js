@@ -157,8 +157,6 @@ export const dbService = {
     }
 
     try {
-      try { await db.rollbackTransaction(); } catch (e) {}
-      await db.beginTransaction();
       const orderRes = await db.run('INSERT INTO orders (invoice_number, total_amount, payment_method) VALUES (?, ?, ?)', [invoiceNumber, total, paymentMethod]);
       const orderId = (orderRes.changes && orderRes.changes.lastId !== undefined) ? orderRes.changes.lastId : (orderRes.lastId || Date.now());
 
@@ -168,10 +166,8 @@ export const dbService = {
         await db.run('UPDATE products SET stock = stock - ? WHERE id = ?', [item.quantity, item.id]);
         await db.run('INSERT INTO stock_ledger (product_id, type, quantity, reference) VALUES (?, ?, ?, ?)', [item.id, 'OUT', item.quantity, `Sales ${invoiceNumber}`]);
       }
-      await db.commitTransaction();
       return { success: true, invoiceNumber };
     } catch (err) {
-      await db.rollbackTransaction();
       console.error('Checkout error:', err);
       return { success: false, error: err.message || JSON.stringify(err) };
     }
@@ -431,13 +427,10 @@ export const dbService = {
       return { success: true };
     }
     try {
-      await db.beginTransaction();
       await db.run('UPDATE products SET stock = stock + ? WHERE id = ?', [qtyToAdd, productId]);
       await db.run('INSERT INTO stock_ledger (product_id, type, quantity, reference) VALUES (?, ?, ?, ?)', [productId, 'IN', qtyToAdd, reference]);
-      await db.commitTransaction();
       return { success: true };
     } catch (err) {
-      await db.rollbackTransaction();
       console.error(err); return { success: false, error: err };
     }
   },
@@ -468,7 +461,6 @@ export const dbService = {
       return { success: true };
     }
     try {
-      await db.beginTransaction();
       await db.run("UPDATE orders SET status = 'cancelled' WHERE id = ?", [orderId]);
       
       const orderRes = await db.query("SELECT invoice_number FROM orders WHERE id = ?", [orderId]);
@@ -482,10 +474,8 @@ export const dbService = {
         await db.run('INSERT INTO stock_ledger (product_id, type, quantity, reference) VALUES (?, ?, ?, ?)', [item.product_id, 'IN', item.quantity, `Void ${invoiceNumber}`]);
       }
       
-      await db.commitTransaction();
       return { success: true };
     } catch (err) {
-      await db.rollbackTransaction();
       console.error(err); return { success: false, error: err };
     }
   },
@@ -566,7 +556,6 @@ export const dbService = {
     }
 
     try {
-      await db.beginTransaction();
       const purcRes = await db.run('INSERT INTO purchases (invoice_number, total_amount) VALUES (?, ?)', [invoiceNumber, totalAmount]);
       const purchaseId = (purcRes.changes && purcRes.changes.lastId !== undefined) ? purcRes.changes.lastId : (purcRes.lastId || Date.now());
 
@@ -597,10 +586,8 @@ export const dbService = {
         }
       }
       
-      await db.commitTransaction();
       return { success: true, invoiceNumber };
     } catch (err) {
-      await db.rollbackTransaction();
       console.error(err);
       return { success: false, error: err.message || JSON.stringify(err) };
     }
@@ -674,8 +661,6 @@ export const dbService = {
     }
 
     try {
-      await db.beginTransaction();
-      
       // Update Stock
       await db.run('UPDATE products SET stock = ? WHERE id = ?', [newStock, productId]);
       
@@ -686,10 +671,8 @@ export const dbService = {
       const type = difference > 0 ? 'IN' : 'OUT';
       await db.run('INSERT INTO stock_ledger (product_id, type, quantity, reference) VALUES (?, ?, ?, ?)', [productId, type, Math.abs(difference), `Opname: ${reason}`]);
       
-      await db.commitTransaction();
       return { success: true };
     } catch (err) {
-      await db.rollbackTransaction();
       console.error(err);
       return { success: false, error: err.message || JSON.stringify(err) };
     }
@@ -743,7 +726,6 @@ export const dbService = {
         return { success: true };
       }
 
-      await db.beginTransaction();
       const tables = ['categories', 'products', 'transactions', 'transaction_items', 'settings', 'stock_ledger', 'purchases', 'purchase_items', 'hpp_history', 'stock_adjustments'];
       
       // Clear existing tables
@@ -767,10 +749,8 @@ export const dbService = {
         }
       }
 
-      await db.commitTransaction();
       return { success: true };
     } catch (err) {
-      if (!isWeb) await db.rollbackTransaction().catch(() => {});
       console.error(err);
       return { success: false, error: err.message };
     }
