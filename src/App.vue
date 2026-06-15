@@ -1,7 +1,7 @@
 <template>
   <div class="flex h-screen w-full overflow-hidden bg-slate-50 font-sans">
     <!-- Sidebar Navigation -->
-    <nav class="w-64 bg-white border-r border-slate-200 flex-col hidden md:flex z-50 shadow-sm">
+    <nav class="w-64 bg-white border-r border-slate-200 flex-col hidden md:flex z-50 shadow-sm" v-if="$route.path !== '/banned'">
       <div class="p-6 border-b border-slate-100 flex items-center justify-between">
         <h2 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">KasirKu Pro</h2>
         <button @click="toggleLanguage" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-lg transition-colors">
@@ -42,7 +42,7 @@
     </main>
 
     <!-- Mobile Bottom Navigation -->
-    <nav class="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 flex md:hidden overflow-x-auto overflow-y-hidden whitespace-nowrap z-50 h-16 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] safe-area-pb custom-scrollbar">
+    <nav class="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 flex md:hidden overflow-x-auto overflow-y-hidden whitespace-nowrap z-50 h-16 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] safe-area-pb custom-scrollbar" v-if="$route.path !== '/banned'">
       <router-link to="/" class="flex-shrink-0 min-w-[72px] flex flex-col items-center justify-center h-full text-[0.65rem] font-semibold transition-colors px-2" active-class="text-blue-600 bg-blue-50/50" :class="$route.path === '/' ? '' : 'text-slate-500'">
         <span class="text-xl mb-0.5">🛒</span>
         <span>{{ t('nav_pos') }}</span>
