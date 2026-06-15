@@ -76,9 +76,21 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { locale, t } from './utils/i18n';
+import { licenseService } from './services/licenseService';
+
+const router = useRouter();
 
 const toggleLanguage = () => {
   locale.value = locale.value === 'id' ? 'en' : 'id';
 };
+
+onMounted(async () => {
+  const status = await licenseService.verifyLicense();
+  if (status === 'banned') {
+    router.replace('/banned');
+  }
+});
 </script>
