@@ -17,6 +17,7 @@ export const licenseService = {
       const status = await Network.getStatus();
       
       if (!status.connected) {
+        alert("License System: Mode Offline terdeteksi. Menyambung ke cache lokal.");
         // Offline: Return cached status (default active)
         return localStorage.getItem('license_status') || 'active';
       }
@@ -34,6 +35,7 @@ export const licenseService = {
       });
 
       if (!response.ok) {
+        alert("License System: Error dari server. Kode HTTP: " + response.status);
         // If server is down, fallback to cache
         return localStorage.getItem('license_status') || 'active';
       }
@@ -46,6 +48,7 @@ export const licenseService = {
       return serverStatus;
 
     } catch (error) {
+      alert("License System Error: " + error.message);
       console.error('License verification failed:', error);
       // Fallback to cache on error
       return localStorage.getItem('license_status') || 'active';
