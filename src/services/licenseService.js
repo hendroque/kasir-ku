@@ -2,7 +2,7 @@ import { Device } from '@capacitor/device';
 import { Network } from '@capacitor/network';
 
 // Change this to your VPS IP in production
-const API_URL = 'http://localhost:3000/api/check'; 
+const API_URL = 'https://api-kasir.droxyyy.web.id/api/check'; 
 
 export const licenseService = {
   async verifyLicense() {
